@@ -1,0 +1,3 @@
+vanna
+vanna[postgres]
+pandas
