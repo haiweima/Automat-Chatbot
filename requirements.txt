@@ -1,3 +1,5 @@
-vanna
+Flask
 vanna[postgres]
+db-dtypes
+python-dotenv
 pandas
