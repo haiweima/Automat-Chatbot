@@ -13,10 +13,10 @@ import pandas as pd
 
 # SETUP
 # Create a model from VannaDefault library using the API Key
-my_mod = VannaDefault('my_dummy_model',api_key="015653fc39e04345a35ef027394c6034")
+my_model = VannaDefault('my_dummy_model',api_key="015653fc39e04345a35ef027394c6034")
 
 # Connect vanna to the DB
-conn = my_mod.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
+conn = my_model.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
 
 # Create a function to run sql queries
 def run_sql(query):
@@ -28,8 +28,8 @@ df_information_schema = my_mod.run_sql("""SELECT * FROM information_schema.colum
 # print(df_information_schema)
 
 # This will break up the information schema into bite-sized chunks that can be referenced by the LLM
-plan = my_mod.get_training_plan_generic(df_information_schema)
-my_mod.train(plan=plan)
+plan = my_model.get_training_plan_generic(df_information_schema)
+my_model.train(plan=plan)
 
 # Deploy the trained model on localhost
 from vanna.flask import VannaFlaskApp
