@@ -3,7 +3,7 @@
 Our app is now running on AWS(35.175.123.183:8084)
 
 These are the details:
-1. The app.py and requirements.txt runs on an EC2 instance.
+1. The app.py and requirements.txt reside in an EC2 cloud instance/VM.
 2. The required vanna code resides in the app.py file and all the libraries, dependencies are in the requirements.txt file.
 3. The dummy(northwind) DB is hosted on a cloud AWS serverless DB on the backend on it's own.
 4. The app.py uses the DB credentials to connect to it and train the model.
