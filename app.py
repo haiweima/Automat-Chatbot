@@ -24,7 +24,7 @@ def run_sql(query):
     return df
 
 # The information schema query may need some tweaking depending on your database. This is a good starting point.
-df_information_schema = my_mod.run_sql("""SELECT * FROM information_schema.columns;""")
+df_information_schema = my_model.run_sql("""SELECT * FROM information_schema.columns;""")
 # print(df_information_schema)
 
 # This will break up the information schema into bite-sized chunks that can be referenced by the LLM
@@ -33,4 +33,4 @@ my_model.train(plan=plan)
 
 # Deploy the trained model on localhost
 from vanna.flask import VannaFlaskApp
-VannaFlaskApp(my_mod).run()
+VannaFlaskApp(my_model).run()
