@@ -1,4 +1,3 @@
-import vanna
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -6,31 +5,204 @@ from functools import wraps
 from flask import Flask, jsonify, Response, request, redirect, url_for
 import flask
 import os
-# from cache import MemoryCache
+from cache import MemoryCache
 
-from vanna.remote import VannaDefault
-import pandas as pd
+app = Flask(__name__, static_url_path='')
 
 # SETUP
-# Create a model from VannaDefault library using the API Key
-my_model = VannaDefault('my_dummy_model',api_key="015653fc39e04345a35ef027394c6034")
+cache = MemoryCache()
 
-# Connect vanna to the DB
-conn = my_model.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
+# from vanna.local import LocalContext_OpenAI
+# vn = LocalContext_OpenAI()
 
-# Create a function to run sql queries
-def run_sql(query):
-    df = pd.read_sql_query(query,conn)
-    return df
+from vanna.remote import VannaDefault
+vn = VannaDefault(model='my_dummy_model', api_key='015653fc39e04345a35ef027394c6034')
 
-# The information schema query may need some tweaking depending on your database. This is a good starting point.
-df_information_schema = my_model.run_sql("""SELECT * FROM information_schema.columns;""")
-# print(df_information_schema)
+vn.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
 
-# This will break up the information schema into bite-sized chunks that can be referenced by the LLM
-plan = my_model.get_training_plan_generic(df_information_schema)
-my_model.train(plan=plan)
+# NO NEED TO CHANGE ANYTHING BELOW THIS LINE
+def requires_cache(fields):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            id = request.args.get('id')
 
-# Deploy the trained model on localhost
-from vanna.flask import VannaFlaskApp
-VannaFlaskApp(my_model).run()
+            if id is None:
+                return jsonify({"type": "error", "error": "No id provided"})
+            
+            for field in fields:
+                if cache.get(id=id, field=field) is None:
+                    return jsonify({"type": "error", "error": f"No {field} found"})
+            
+            field_values = {field: cache.get(id=id, field=field) for field in fields}
+            
+            # Add the id to the field_values
+            field_values['id'] = id
+
+            return f(*args, **field_values, **kwargs)
+        return decorated
+    return decorator
+
+@app.route('/api/v0/generate_questions', methods=['GET'])
+def generate_questions():
+    return jsonify({
+        "type": "question_list", 
+        "questions": vn.generate_questions(),
+        "header": "Here are some questions you can ask:"
+        })
+
+@app.route('/api/v0/generate_sql', methods=['GET'])
+def generate_sql():
+    question = flask.request.args.get('question')
+
+    if question is None:
+        return jsonify({"type": "error", "error": "No question provided"})
+
+    id = cache.generate_id(question=question)
+    sql = vn.generate_sql(question=question)
+
+    cache.set(id=id, field='question', value=question)
+    cache.set(id=id, field='sql', value=sql)
+
+    return jsonify(
+        {
+            "type": "sql", 
+            "id": id,
+            "text": sql,
+        })
+
+@app.route('/api/v0/run_sql', methods=['GET'])
+@requires_cache(['sql'])
+def run_sql(id: str, sql: str):
+    try:
+        df = vn.run_sql(sql=sql)
+
+        cache.set(id=id, field='df', value=df)
+
+        return jsonify(
+            {
+                "type": "df", 
+                "id": id,
+                "df": df.head(10).to_json(orient='records'),
+            })
+
+    except Exception as e:
+        return jsonify({"type": "error", "error": str(e)})
+
+@app.route('/api/v0/download_csv', methods=['GET'])
+@requires_cache(['df'])
+def download_csv(id: str, df):
+    csv = df.to_csv()
+
+    return Response(
+        csv,
+        mimetype="text/csv",
+        headers={"Content-disposition":
+                 f"attachment; filename={id}.csv"})
+
+@app.route('/api/v0/generate_plotly_figure', methods=['GET'])
+@requires_cache(['df', 'question', 'sql'])
+def generate_plotly_figure(id: str, df, question, sql):
+    try:
+        code = vn.generate_plotly_code(question=question, sql=sql, df_metadata=f"Running df.dtypes gives:\n {df.dtypes}")
+        fig = vn.get_plotly_figure(plotly_code=code, df=df, dark_mode=False)
+        fig_json = fig.to_json()
+
+        cache.set(id=id, field='fig_json', value=fig_json)
+
+        return jsonify(
+            {
+                "type": "plotly_figure", 
+                "id": id,
+                "fig": fig_json,
+            })
+    except Exception as e:
+        # Print the stack trace
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({"type": "error", "error": str(e)})
+
+@app.route('/api/v0/get_training_data', methods=['GET'])
+def get_training_data():
+    df = vn.get_training_data()
+
+    return jsonify(
+    {
+        "type": "df", 
+        "id": "training_data",
+        "df": df.head(25).to_json(orient='records'),
+    })
+
+@app.route('/api/v0/remove_training_data', methods=['POST'])
+def remove_training_data():
+    # Get id from the JSON body
+    id = flask.request.json.get('id')
+
+    if id is None:
+        return jsonify({"type": "error", "error": "No id provided"})
+
+    if vn.remove_training_data(id=id):
+        return jsonify({"success": True})
+    else:
+        return jsonify({"type": "error", "error": "Couldn't remove training data"})
+
+@app.route('/api/v0/train', methods=['POST'])
+def add_training_data():
+    question = flask.request.json.get('question')
+    sql = flask.request.json.get('sql')
+    ddl = flask.request.json.get('ddl')
+    documentation = flask.request.json.get('documentation')
+
+    try:
+        id = vn.train(question=question, sql=sql, ddl=ddl, documentation=documentation)
+
+        return jsonify({"id": id})
+    except Exception as e:
+        print("TRAINING ERROR", e)
+        return jsonify({"type": "error", "error": str(e)})
+
+@app.route('/api/v0/generate_followup_questions', methods=['GET'])
+@requires_cache(['df', 'question', 'sql'])
+def generate_followup_questions(id: str, df, question, sql):
+    followup_questions = vn.generate_followup_questions(question=question, sql=sql, df=df)
+
+    cache.set(id=id, field='followup_questions', value=followup_questions)
+
+    return jsonify(
+        {
+            "type": "question_list", 
+            "id": id,
+            "questions": followup_questions,
+            "header": "Here are some followup questions you can ask:"
+        })
+
+@app.route('/api/v0/load_question', methods=['GET'])
+@requires_cache(['question', 'sql', 'df', 'fig_json', 'followup_questions'])
+def load_question(id: str, question, sql, df, fig_json, followup_questions):
+    try:
+        return jsonify(
+            {
+                "type": "question_cache", 
+                "id": id,
+                "question": question,
+                "sql": sql,
+                "df": df.head(10).to_json(orient='records'),
+                "fig": fig_json,
+                "followup_questions": followup_questions,
+            })
+
+    except Exception as e:
+        return jsonify({"type": "error", "error": str(e)})
+
+@app.route('/api/v0/get_question_history', methods=['GET'])
+def get_question_history():
+    return jsonify({"type": "question_history", "questions": cache.get_all(field_list=['question']) })
+
+@app.route('/')
+def root():
+    return app.send_static_file('index.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
