@@ -25,7 +25,7 @@ cache = MemoryCache()
 from vanna.remote import VannaDefault
 from vanna.flask import VannaFlaskApp
 vn = VannaDefault(model='chinook', api_key='545b7616748246398657d6f7ad8b0a19')
-vn.connect_to_sqlite('https://vanna.ai/Chinook.sqlite')
+vn.connect_to_sqlite('Chinook.sqlite')
 
 #vn.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
 
