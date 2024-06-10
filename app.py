@@ -16,11 +16,10 @@ cache = MemoryCache()
 # vn = LocalContext_OpenAI()
 
 from vanna.remote import VannaDefault
-vn = VannaDefault(model='my_dummy_model', api_key='015653fc39e04345a35ef027394c6034')
+vn = VannaDefault(model='chinook', api_key='545b7616748246398657d6f7ad8b0a19')
+vn.connect_to_sqlite('Chinook.sqlite')
 
 #vn.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
-vn.connect_to_sqlite('https://vanna.ai/Chinook.sqlite')
-
 
 # NO NEED TO CHANGE ANYTHING BELOW THIS LINE
 def requires_cache(fields):
