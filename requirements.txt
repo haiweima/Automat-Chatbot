@@ -1,4 +1,6 @@
-Flask
-flask-cors
-vanna[postgres]
+flask
+vanna[snowflake]
+db-dtypes
 python-dotenv
+gunicorn
+flask-cors

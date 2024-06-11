@@ -1,18 +1,15 @@
 from dotenv import load_dotenv
+load_dotenv()
+
 from functools import wraps
 from flask import Flask, jsonify, Response, request, redirect, url_for
 import flask
-from flask_cors import CORS
 import os
 from cache import MemoryCache
-import sys
-
-# Load environment variables from .env file
-load_dotenv()
+from flask_cors import CORS
 
 app = Flask(__name__, static_url_path='')
-app.config['DEBUG'] = os.environ.get('FLASK_DEBUG')
-CORS(app)  # Enable CORS for all routes and origins
+CORS(app)
 
 # SETUP
 cache = MemoryCache()
@@ -21,11 +18,8 @@ cache = MemoryCache()
 # vn = LocalContext_OpenAI()
 
 from vanna.remote import VannaDefault
-from vanna.flask import VannaFlaskApp
 vn = VannaDefault(model='chinook', api_key='545b7616748246398657d6f7ad8b0a19')
 vn.connect_to_sqlite('Chinook.sqlite')
-#vn.ask('What are the top 10 artists by sales?')
-#vn.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
 
 # NO NEED TO CHANGE ANYTHING BELOW THIS LINE
 def requires_cache(fields):
@@ -211,6 +205,4 @@ def root():
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
-    app.run()
-    #VannaFlaskApp(vn).run()
-
+    app.run(debug=True)
