@@ -1,5 +1,3 @@
-Flask
+flask
 vanna[postgres]
-db-dtypes
-python-dotenv
-pandas
+gunicorn
