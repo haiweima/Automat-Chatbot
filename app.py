@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 from functools import wraps
 from flask import Flask, jsonify, Response, request, redirect, url_for
 import flask
