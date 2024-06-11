@@ -1,12 +1,18 @@
+from dotenv import load_dotenv
 from functools import wraps
 from flask import Flask, jsonify, Response, request, redirect, url_for
 import flask
+from flask_cors import CORS
 import os
 from cache import MemoryCache
-
 import sys
 
+# Load environment variables from .env file
+load_dotenv()
+
 app = Flask(__name__, static_url_path='')
+app.config['DEBUG'] = os.environ.get('FLASK_DEBUG')
+CORS(app)  # Enable CORS for all routes and origins
 
 # SETUP
 cache = MemoryCache()
@@ -205,6 +211,6 @@ def root():
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
     #VannaFlaskApp(vn).run()
 
