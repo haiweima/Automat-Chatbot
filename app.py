@@ -9,11 +9,6 @@ from cache import MemoryCache
 
 import sys
 
-# add your project directory to the sys.path
-project_home = '/home/haiweima/Automat-Chatbot'
-if project_home not in sys.path:
-    sys.path = [project_home] + sys.path
-
 app = Flask(__name__, static_url_path='')
 
 # SETUP
@@ -26,7 +21,7 @@ from vanna.remote import VannaDefault
 from vanna.flask import VannaFlaskApp
 vn = VannaDefault(model='chinook', api_key='545b7616748246398657d6f7ad8b0a19')
 vn.connect_to_sqlite('Chinook.sqlite')
-
+#vn.ask('What are the top 10 artists by sales?')
 #vn.connect_to_postgres(host="tenth-snake-14405.7tt.aws-us-east-1.cockroachlabs.cloud", dbname="northwind_db", user="srikarreddy651", password="jTmnTbYPzv-v-zU1rWUmUQ", port="26257")
 
 # NO NEED TO CHANGE ANYTHING BELOW THIS LINE
